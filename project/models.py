@@ -10,6 +10,8 @@ class Project(models.Model):
     create_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد', blank=False)
     update_at = models.DateTimeField(auto_now=True, verbose_name='تاریخ ویرایش', blank=False)
 
+    def __str__(self):
+        return self.project_name
 
 class Panel(models.Model):
     class Meta:
@@ -21,3 +23,6 @@ class Panel(models.Model):
     Project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='panel')
     create_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد', blank=False)
     update_at = models.DateTimeField(auto_now=True, verbose_name='تاریخ ویرایش', blank=False)
+
+    def __str__(self):
+        return self.panel_name
