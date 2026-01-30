@@ -43,6 +43,9 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     # 'corsheaders',
+
+    # my apps:
+    'project',
 ]
 
 MIDDLEWARE = [
