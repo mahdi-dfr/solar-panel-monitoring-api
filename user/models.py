@@ -16,7 +16,6 @@ class User(AbstractUser):
                                      validators=[mobile_validator], )
     ROLE_LIST = [(1, 'ادمین') , (2 , 'کاربرعادی'), ]
     role = models.CharField(max_length=1, default='0', choices=ROLE_LIST, verbose_name='نقش کاربر', )
-    
     last_login = models.DateTimeField(auto_now=True, blank=True, verbose_name='آخرین ورود')
     create_at = models.DateTimeField(auto_now_add=True, blank=True, verbose_name='تاریخ ایجاد')
     delete_at = models.DateTimeField(auto_now=True, blank=True, verbose_name='تاریخ حذف')

@@ -7,6 +7,8 @@ class Project(models.Model):
 
     project_name = models.CharField(max_length=255, verbose_name='نام پروژه', null=False, blank=False)
     project_address = models.TextField(null=False, blank=False, verbose_name='آدرس')
+    city = models.ForeignKey('country_division.City', on_delete=models.PROTECT, verbose_name='شهرستان', null=True, blank=True)
+    province = models.ForeignKey('country_division.Province', on_delete=models.PROTECT, verbose_name='استان', null=True, blank=True)
     create_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد', blank=False)
     update_at = models.DateTimeField(auto_now=True, verbose_name='تاریخ ویرایش', blank=False)
 

@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     # my apps:
     'project',
     'user',
+    'country_division',
+    'weather',
 ]
 
 MIDDLEWARE = [
