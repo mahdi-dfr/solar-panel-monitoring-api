@@ -17,8 +17,8 @@ def build_django_rest_framework(your_settings=None):
         # 'REFRESH_TOKEN_LIFETIME': datetime.timedelta(
         #     days=int(os.getenv('REFRESH_TOKEN_DAYS', '12')),
         # ),
-        # 'DEFAULT_PAGINATION_CLASS': 'solarapi.custom_drf.CustomPagination',
-        # 'PAGE_SIZE': 50,
+        'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+        'PAGE_SIZE': 100,
         # 'DEFAULT_FILTER_BACKENDS': [
         #     'django_filters.rest_framework.DjangoFilterBackend',
         #     'rest_framework.filters.OrderingFilter'
