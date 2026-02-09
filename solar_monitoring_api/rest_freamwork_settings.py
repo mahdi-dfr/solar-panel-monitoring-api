@@ -9,14 +9,12 @@ def build_django_rest_framework(your_settings=None):
         'DEFAULT_PERMISSION_CLASSES': [
             'rest_framework.permissions.IsAuthenticated',
         ],
-        # 'ACCESS_TOKEN_LIFETIME': datetime.timedelta(
-        #     days=int(os.getenv('ACCESS_TOKEN_DAYS', '10')),
-        #     minutes=int(os.getenv('ACCESS_TOKEN_MINUTES', '60')),
-        #     seconds=int(os.getenv('ACCESS_TOKEN_SECONDS', '0')),
-        # ),
-        # 'REFRESH_TOKEN_LIFETIME': datetime.timedelta(
-        #     days=int(os.getenv('REFRESH_TOKEN_DAYS', '12')),
-        # ),
+        'ACCESS_TOKEN_LIFETIME': datetime.timedelta(
+            days=int(30),
+        ),
+        'REFRESH_TOKEN_LIFETIME': datetime.timedelta(
+            days=int(60),
+        ),
         'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
         'PAGE_SIZE': 100,
         # 'DEFAULT_FILTER_BACKENDS': [

@@ -5,7 +5,7 @@ class Project(models.Model):
         verbose_name='پروژه'
         verbose_name_plural = 'پروژه ها'
 
-    user = models.ForeignKey('user.User', on_delete=models.CASCADE, verbose_name='کاربر', null=False, blank=False, related_name='user_project')
+    user = models.ForeignKey('user.User', on_delete=models.CASCADE, verbose_name='کاربر', null=False, blank=True, related_name='project_user')
     project_name = models.CharField(max_length=255, verbose_name='نام پروژه', null=False, blank=False)
     project_address = models.TextField(null=True, blank=True, verbose_name='آدرس')
     city = models.ForeignKey('country_division.City', on_delete=models.PROTECT, verbose_name='شهرستان', null=True, blank=True)
