@@ -1,15 +1,27 @@
-from rest_framework.serializers import ModelSerializer
+from rest_framework.serializers import ModelSerializer, PrimaryKeyRelatedField
 from .models import Project, Panel
-from country_division.serializer import CitySerializer, ProvinceSerializer
+from country_division.models import City
+from country_division.serializer import CitySerializer
 
 
 class ProjectSerializer(ModelSerializer):
-    city = CitySerializer(read_only=True)
-    province = ProvinceSerializer(read_only=True)
+    
+    # برای دریافت city هنگام create
+    city = PrimaryKeyRelatedField(
+        queryset=City.objects.all(),
+        required=True,
+        allow_null=False,
+    )
+
+    # برای نمایش اطلاعات شهر هنگام GET
+    # city_detail = CitySerializer(source='city', read_only=True)
+
     class Meta:
-        model= Project
+        model = Project
         fields = '__all__'
         read_only_fields = ('user',)
+        depth = 1
+
 
 class PanelSerializer(ModelSerializer):
     class Meta:

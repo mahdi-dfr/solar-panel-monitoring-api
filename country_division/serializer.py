@@ -12,12 +12,12 @@ class ProvinceSerializer(ModelSerializer):
 
 
 class CitySerializer(ModelSerializer):
-    province = CustomSlugRelatedField(slug_field='title', queryset=Province.objects.all(), required=False)
+    # province = CustomSlugRelatedField(slug_field='title', queryset=Province.objects.all(), required=False)
 
     class Meta:
         model = City
-        fields = '__all__'
-        depth = 1
+        exclude = ['created_at', ]
+        # depth = 1
 
 
 class CountySerializer(ModelSerializer):

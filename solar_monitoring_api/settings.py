@@ -72,6 +72,8 @@ CORS_ALLOW_HEADERS = [
 ]
 
 WEATHER_API_KEY = os.getenv('WEATHER_APIKEY')
+WEATHER_URL = os.getenv('WEATHER_URL')
+LATLONG_URL = os.getenv('LATLONG_URL')
 
 TEMPLATES = [
     {

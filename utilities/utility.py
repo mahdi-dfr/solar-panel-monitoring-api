@@ -8,6 +8,45 @@ from unidecode import unidecode
 import datetime
 
 
+# services/location_service.py
+import requests
+from urllib.parse import quote
+from django.conf import settings
+from project.models import Project
+
+
+def get_or_fetch_lat_long(city):
+    """
+    city -> instance of City model
+    """
+
+    # 1) check existing in DB (reuse)
+    existing_project = Project.objects.filter(
+        city=city,
+        latitude__isnull=False,
+        longitude__isnull=False
+    ).first()
+
+    if existing_project:
+        return existing_project.latitude, existing_project.longitude
+
+    # 2) fetch from external API
+    encoded_city = quote(str(city))  # city name persian
+    url = f"{settings.LATLONG_URL}/{encoded_city}?json=1"
+
+    response = requests.get(url, timeout=5)
+    response.raise_for_status()
+
+    data = response.json()
+
+    lat = data.get("latt")
+    lng = data.get("longt")
+
+    if not lat or not lng:
+        raise Exception("Lat/Long not found for this city")
+
+    return lat, lng
+
 
 
 # class RoleBaseAccessPolicy(AccessPolicy):
