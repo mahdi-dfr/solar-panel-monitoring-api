@@ -20,7 +20,7 @@ class ProjectSerializer(ModelSerializer):
         model = Project
         fields = '__all__'
         read_only_fields = ('user',)
-        depth = 1
+        
 
 
 class PanelSerializer(ModelSerializer):
