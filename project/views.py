@@ -7,8 +7,15 @@ from urllib.parse import quote
 
 
 from rest_framework.views import APIView
-from . serializer import ProjectSerializer, PanelSerializer
-from . models import Project, Panel
+from django.utils.dateparse import parse_datetime
+from django.utils import timezone
+
+from .serializer import (
+    ProjectSerializer,
+    PanelSerializer,
+    PanelPowerReadingSerializer,
+)
+from .models import Project, Panel, PanelPowerReading
 from solar_monitoring_api import settings
 import requests
 
@@ -53,8 +60,13 @@ class PanelViewSet(ModelViewSet):
     def get_queryset(self):
         project_id = self.request.query_params.get('project_id')
 
+        # if not project_id:
+        #     return Response({"Error": "error"}) 
+        
         if not project_id:
-            return Panel.objects.none()
+            raise ValidationError({
+                "project_id": "project_id is required"
+            })
 
         return Panel.objects.filter(
             project__id=project_id,
@@ -80,6 +92,51 @@ class PanelViewSet(ModelViewSet):
             })
 
         serializer.save(project=project)
+
+
+class PanelPowerView(APIView):
+    """
+    GET /api/project/panels/<board_id>/power/
+    Returns latest power (kw) for the panel with given board_id.
+    Query params: from=ISO datetime, to=ISO datetime -> time-series in range.
+    """
+
+    def get(self, request, board_id):
+        panel = (
+            Panel.objects.filter(
+                board_id=board_id,
+                project__user=request.user,
+            )
+            .select_related("project")
+            .first()
+        )
+        if not panel:
+            return Response(
+                {"error": "Panel not found for this board_id."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        from_param = request.query_params.get("from")
+        to_param = request.query_params.get("to")
+        if from_param is not None or to_param is not None:
+            from_ts = parse_datetime(from_param) if from_param else None
+            to_ts = parse_datetime(to_param) if to_param else None
+            if from_ts and timezone.is_naive(from_ts):
+                from_ts = timezone.make_aware(from_ts)
+            if to_ts and timezone.is_naive(to_ts):
+                to_ts = timezone.make_aware(to_ts)
+            qs = PanelPowerReading.objects.filter(panel=panel).order_by("recorded_at")
+            if from_ts:
+                qs = qs.filter(recorded_at__gte=from_ts)
+            if to_ts:
+                qs = qs.filter(recorded_at__lte=to_ts)
+            serializer = PanelPowerReadingSerializer(qs, many=True)
+            return Response({"board_id": board_id, "readings": serializer.data})
+        data = {
+            "board_id": panel.board_id,
+            "kw": panel.kw,
+            "update_at": panel.update_at,
+        }
+        return Response(data)
 
 
 class ProjectWeatherView(APIView):

@@ -1,0 +1,19 @@
+[Unit]
+Description=Solar Monitoring MQTT Listener
+After=network.target
+
+[Service]
+Type=simple
+User=solar
+Group=solar
+WorkingDirectory=/opt/solar-monitoring-api
+EnvironmentFile=/opt/solar-monitoring-api/.env
+ExecStart=/opt/solar-monitoring-api/venv/bin/python manage.py start_mqtt_listener
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=solar-mqtt
+
+[Install]
+WantedBy=multi-user.target
