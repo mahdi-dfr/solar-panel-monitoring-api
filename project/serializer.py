@@ -1,5 +1,5 @@
 from rest_framework.serializers import ModelSerializer, PrimaryKeyRelatedField
-from .models import Project, Panel, PanelPowerReading
+from .models import Project
 from country_division.models import City
 from country_division.serializer import CitySerializer
 
@@ -27,23 +27,17 @@ class ProjectSerializer(ModelSerializer):
         return data    
 
 
-class PanelSerializer(ModelSerializer):
-    class Meta:
-        model = Panel
-        fields = '__all__'
+# class PanelPowerReadingSerializer(ModelSerializer):
+#     """Single power reading for time-series API."""
+
+#     class Meta:
+#         model = PanelPowerReading
+#         fields = ("recorded_at", "kw")
 
 
-class PanelPowerReadingSerializer(ModelSerializer):
-    """Single power reading for time-series API."""
+# class PanelPowerResponseSerializer(ModelSerializer):
+#     """Latest power value for a panel."""
 
-    class Meta:
-        model = PanelPowerReading
-        fields = ("recorded_at", "kw")
-
-
-class PanelPowerResponseSerializer(ModelSerializer):
-    """Latest power value for a panel."""
-
-    class Meta:
-        model = Panel
-        fields = ("id", "board_id", "kw", "update_at")
+#     class Meta:
+#         model = Panel
+#         fields = ("id", "board_id", "kw", "update_at")
