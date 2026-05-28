@@ -16,6 +16,7 @@ from project.models import Project
 
 
 def get_or_fetch_lat_long(city):
+    print(city)
     """
     city -> instance of City model
     """

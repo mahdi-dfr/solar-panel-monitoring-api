@@ -21,6 +21,10 @@ class Project(models.Model):
 
 
 class Board(models.Model):
+    class Meta:
+        verbose_name='برد'
+        verbose_name_plural = 'بردها'
+
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='boards')
     board_id = models.IntegerField(unique=True)  # همان board_id که از MQTT میاد
     name = models.CharField(max_length=255)
@@ -30,11 +34,14 @@ class Board(models.Model):
 
 
 class String(models.Model):
+   
     board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name='strings')
     string_id = models.IntegerField()  # همان String_id که از MQTT میاد
     name = models.CharField(max_length=255)
 
     class Meta:
+        verbose_name='استرینگ'
+        verbose_name_plural = 'استرینگ ها'
         unique_together = ('board', 'string_id')
 
     def __str__(self):
@@ -70,7 +77,7 @@ class StringReading(models.Model):
     voltage = models.IntegerField()
     current = models.IntegerField()
     power = models.FloatField()   # محاسبه‌شده: voltage * current
-    energy = models.FloatField(default=0.0)  # تجمیعی - باید جداگانه مدیریت بشه
+    energy = models.FloatField(default=0.0) 
     created_at = models.DateTimeField(auto_now_add=True)
 
 

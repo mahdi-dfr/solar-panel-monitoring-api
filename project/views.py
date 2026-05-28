@@ -9,11 +9,17 @@ from urllib.parse import quote
 from rest_framework.views import APIView
 from django.utils.dateparse import parse_datetime
 from django.utils import timezone
+from django.shortcuts import get_object_or_404
 
 from .serializer import (
-    ProjectSerializer)
+    ProjectSerializer, LiveBoardSerializer)
 
-from .models import Project
+from .models import (
+    Project,
+    Board,
+    BoardReading,
+    StringReading
+)
 from solar_monitoring_api import settings
 import requests
 
@@ -21,14 +27,21 @@ import requests
 
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.exceptions import ValidationError
-from .models import Project
+from .models import Project, StringReading
 from utilities.utility import get_or_fetch_lat_long
+from ACU.custom_permissions import IsOwner
+from rest_framework.permissions import IsAuthenticated
+from django.db.models import Prefetch
+
 
 
 class ProjectViewSet(ModelViewSet):
+    permission_classes = [IsAuthenticated, IsOwner]
     serializer_class = ProjectSerializer
 
     def get_queryset(self):
+        if self.request.user.is_staff:
+            return Project.objects.all()
         return Project.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
@@ -52,89 +65,73 @@ class ProjectViewSet(ModelViewSet):
         )
 
 
-# class PanelViewSet(ModelViewSet):
-#     serializer_class = PanelSerializer
-
-#     def get_queryset(self):
-#         project_id = self.request.query_params.get('project_id')
-
-#         # if not project_id:
-#         #     return Response({"Error": "error"}) 
-        
-#         if not project_id:
-#             raise ValidationError({
-#                 "project_id": "project_id is required"
-#             })
-
-#         return Panel.objects.filter(
-#             project__id=project_id,
-#             project__user=self.request.user
-#         )
-
-#     def perform_create(self, serializer):
-#         project_id = self.request.query_params.get('project_id')
-
-#         if not project_id:
-#             raise ValidationError({
-#                 "project_id": "لطفاً project_id را در query params ارسال کنید."
-#             })
-
-#         try:
-#             project = Project.objects.get(
-#                 id=project_id,
-#                 user=self.request.user
-#             )
-#         except Project.DoesNotExist:
-#             raise ValidationError({
-#                 "project_id": "پروژه‌ای با این شناسه برای این کاربر وجود ندارد."
-#             })
-
-#         serializer.save(project=project)
 
 
-# class PanelPowerView(APIView):
-#     """
-#     GET /api/project/panels/<board_id>/power/
-#     Returns latest power (kw) for the panel with given board_id.
-#     Query params: from=ISO datetime, to=ISO datetime -> time-series in range.
-#     """
+class ProjectLiveDataAPIView(APIView):
 
-#     def get(self, request, board_id):
-#         panel = (
-#             Panel.objects.filter(
-#                 board_id=board_id,
-#                 project__user=request.user,
-#             )
-#             .select_related("project")
-#             .first()
-#         )
-#         if not panel:
-#             return Response(
-#                 {"error": "Panel not found for this board_id."},
-#                 status=status.HTTP_404_NOT_FOUND,
-#             )
-#         from_param = request.query_params.get("from")
-#         to_param = request.query_params.get("to")
-#         if from_param is not None or to_param is not None:
-#             from_ts = parse_datetime(from_param) if from_param else None
-#             to_ts = parse_datetime(to_param) if to_param else None
-#             if from_ts and timezone.is_naive(from_ts):
-#                 from_ts = timezone.make_aware(from_ts)
-#             if to_ts and timezone.is_naive(to_ts):
-#                 to_ts = timezone.make_aware(to_ts)
-#             qs = PanelPowerReading.objects.filter(panel=panel).order_by("recorded_at")
-#             if from_ts:
-#                 qs = qs.filter(recorded_at__gte=from_ts)
-#             if to_ts:
-#                 qs = qs.filter(recorded_at__lte=to_ts)
-#             serializer = PanelPowerReadingSerializer(qs, many=True)
-#             return Response({"board_id": board_id, "readings": serializer.data})
-#         data = {
-#             "board_id": panel.board_id,
-#             "kw": panel.kw,
-#             "update_at": panel.update_at,
-#         }
-#         return Response(data)
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, project_id):
+
+        # گرفتن پروژه
+        project = get_object_or_404(
+            Project,
+            id=project_id
+        )
+
+        # چک مالکیت
+        if not request.user.is_staff and project.user != request.user:
+            return Response(
+                {"detail": "شما دسترسی ندارید"},
+                status=403
+            )
+
+        result = []
+
+        boards = Board.objects.filter(
+            project=project
+        )
+
+        for board in boards:
+
+            # آخرین reading
+            latest_reading = (
+                BoardReading.objects
+                .filter(board=board)
+                .prefetch_related(
+                    Prefetch(
+                        'string_readings',
+                        queryset=StringReading.objects.select_related('string')
+                    )
+                )
+                .order_by('-timestamp')
+                .first()
+            )
+
+            # اگر هنوز داده‌ای وجود ندارد
+            if not latest_reading:
+                continue
+
+            result.append({
+                "board_id": board.board_id,
+                "board_name": board.name,
+
+                "temperature": latest_reading.temperature,
+                "humidity": latest_reading.humidity,
+
+                "timestamp": latest_reading.timestamp,
+
+                "strings": latest_reading.string_readings.all()
+            })
+
+        serializer = LiveBoardSerializer(result, many=True)
+
+        return Response({
+            "project_id": project.id,
+            "project_name": project.project_name,
+            "boards": serializer.data
+        })
+
 
 
 class ProjectWeatherView(APIView):
@@ -194,7 +191,6 @@ class ProjectWeatherView(APIView):
 
         except requests.exceptions.HTTPError as e:
             return Response({"error": "Weather API error", "detail": str(e)}, status=502)
-
 
 
 class ConvertCityToLatlongView(APIView):
