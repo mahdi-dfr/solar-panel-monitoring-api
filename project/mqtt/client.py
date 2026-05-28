@@ -11,7 +11,7 @@ import ssl
 
 import paho.mqtt.client as mqtt
 
-from project.services.power_service import store_power_for_board
+from project.services.power_service import store_mqtt_payload
 
 logger = logging.getLogger(__name__)
 
@@ -30,21 +30,23 @@ def _parse_payload(payload: bytes) -> dict | None:
         return None
 
 
-def _validate_and_extract(data: dict) -> tuple[int | None, object]:
-    """Validate required fields; return (Voltage_board_id, KW) or (None, None)."""
-    if not isinstance(data, dict):
-        return None, None
-    board_id = data.get("Voltage_board_id")
-    if board_id is None:
-        logger.debug("Missing Voltage_board_id in payload")
-        return None, None
-    try:
-        board_id = int(board_id)
-    except (TypeError, ValueError):
-        logger.warning("Invalid Voltage_board_id: %r", data.get("Voltage_board_id"))
-        return None, None
-    kw = data.get("KW")
-    return board_id, kw
+
+
+# def _validate_and_extract(data: dict) -> tuple[int | None, object]:
+#     """Validate required fields; return (Voltage_board_id, KW) or (None, None)."""
+#     if not isinstance(data, dict):
+#         return None, None
+#     board_id = data.get("Voltage_board_id")
+#     if board_id is None:
+#         logger.debug("Missing Voltage_board_id in payload")
+#         return None, None
+#     try:
+#         board_id = int(board_id)
+#     except (TypeError, ValueError):
+#         logger.warning("Invalid Voltage_board_id: %r", data.get("Voltage_board_id"))
+#         return None, None
+#     kw = data.get("KW")
+#     return board_id, kw
 
 
 def _on_connect(client, userdata, flags, rc):
@@ -61,14 +63,17 @@ def _on_disconnect(client, userdata, rc):
 
 
 def on_message(client, userdata, msg):
-    """Parse message, validate, and store KW for board. Never raise."""
+
     data = _parse_payload(msg.payload)
+
     if data is None:
         return
-    board_id, kw = _validate_and_extract(data)
-    if board_id is None:
-        return
-    store_power_for_board(board_id, kw)
+
+    try:
+        store_mqtt_payload(data)
+
+    except Exception as e:
+        logger.exception("Failed to process MQTT message: %s", e)
 
 
 def build_client() -> mqtt.Client:
