@@ -3,7 +3,6 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     ProjectViewSet,
-    StringReadingViewSet,
     ProjectWeatherView,
     ConvertCityToLatlongView,
     ProjectLiveDataAPIView
@@ -12,7 +11,7 @@ from .views import (
 
 router = DefaultRouter()
 router.register("projects", ProjectViewSet, basename="projects")
-router.register("strings_reading", StringReadingViewSet, basename="string_reading")
+# router.register("strings_reading", StringReadingViewSet, basename="string_reading")
 # router.register("panels", PanelViewSet, basename="panel")
 
 urlpatterns = [

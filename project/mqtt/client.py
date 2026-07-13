@@ -30,29 +30,14 @@ def _parse_payload(payload: bytes) -> dict | None:
         return None
 
 
-
-
-# def _validate_and_extract(data: dict) -> tuple[int | None, object]:
-#     """Validate required fields; return (Voltage_board_id, KW) or (None, None)."""
-#     if not isinstance(data, dict):
-#         return None, None
-#     board_id = data.get("Voltage_board_id")
-#     if board_id is None:
-#         logger.debug("Missing Voltage_board_id in payload")
-#         return None, None
-#     try:
-#         board_id = int(board_id)
-#     except (TypeError, ValueError):
-#         logger.warning("Invalid Voltage_board_id: %r", data.get("Voltage_board_id"))
-#         return None, None
-#     kw = data.get("KW")
-#     return board_id, kw
-
-
 def _on_connect(client, userdata, flags, rc):
     """Callback when broker connects (CallbackAPIVersion.VERSION1: rc int)."""
     if rc == 0:
         logger.info("MQTT connected to broker")
+        # subscribe دوباره اینجا هم انجام می‌شه (idempotent است) تا اگر
+        # session روی بروکر expire/reset بشه، دریافت پیام قطع نشه.
+        client.subscribe(MQTT_TOPIC, qos=MQTT_QOS)
+        logger.info("Subscribed to topic: %s (qos=%s)", MQTT_TOPIC, MQTT_QOS)
     else:
         logger.warning("MQTT connect failed, rc=%s", rc)
 
@@ -63,15 +48,11 @@ def _on_disconnect(client, userdata, rc):
 
 
 def on_message(client, userdata, msg):
-
     data = _parse_payload(msg.payload)
-
     if data is None:
         return
-
     try:
         store_mqtt_payload(data)
-
     except Exception as e:
         logger.exception("Failed to process MQTT message: %s", e)
 
@@ -89,6 +70,18 @@ def build_client() -> mqtt.Client:
     client.on_disconnect = _on_disconnect
     client.on_message = on_message
 
+    # =====================================================================
+    # اطلاعات سرور MQTT از اینجا (Environment Variables) خونده می‌شه.
+    # این‌ها رو کد وارد نکن! توی فایل .env پروژه (کنار manage.py) ست کن:
+    #
+    #   MQTT_HOST=آدرس یا IP بروکر شما
+    #   MQTT_PORT=1883        (یا 8883 اگر TLS فعاله)
+    #   MQTT_USERNAME=یوزرنیم بروکر (در صورت نیاز)
+    #   MQTT_PASSWORD=پسورد بروکر (در صورت نیاز)
+    #   MQTT_USE_TLS=0
+    #   MQTT_TOPIC=panels/voltage
+    #   MQTT_CLIENT_ID=solar-monitoring-api
+    # =====================================================================
     host = os.getenv("MQTT_HOST", "localhost")
     port = int(os.getenv("MQTT_PORT", "1883"))
     username = os.getenv("MQTT_USERNAME")
