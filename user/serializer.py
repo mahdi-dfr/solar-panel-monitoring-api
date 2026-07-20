@@ -1,15 +1,29 @@
 from rest_framework import serializers
-from . models import User
-from utilities.serializer_helper import DisplayTextChoicesField
-from django.contrib.auth.hashers import make_password
+from .models import User
 
 
 class UserSerializer(serializers.ModelSerializer):
 
-    class Meta:
-        exclude = ['password', 'groups', 'user_permissions']
-        model = User
+    password = serializers.CharField(
+        write_only=True,
+        required=True
+    )
 
-    
-    def validate_password(self, value):
-        return make_password(value)    
+    class Meta:
+        model = User
+        exclude = ['groups', 'user_permissions']
+
+        extra_kwargs = {
+            'first_name': {'required': True},
+            'mobile_number': {'required': True},
+            'username': {'required': True},
+        }
+
+    def create(self, validated_data):
+        password = validated_data.pop('password')
+
+        user = User(**validated_data)
+        user.set_password(password)
+        user.save()
+
+        return user
