@@ -5,12 +5,17 @@ from .views import (
     ProjectViewSet,
     ProjectWeatherView,
     ConvertCityToLatlongView,
-    ProjectLiveDataAPIView
+    ProjectLiveDataAPIView,
+    AdminStatisticsView,
+    StringViewSet,
+    BoardViewSet
 
 )
 
 router = DefaultRouter()
 router.register("projects", ProjectViewSet, basename="projects")
+router.register("board", BoardViewSet, basename="board")
+router.register("string", StringViewSet, basename="string")
 # router.register("strings_reading", StringReadingViewSet, basename="string_reading")
 # router.register("panels", PanelViewSet, basename="panel")
 
@@ -21,6 +26,11 @@ urlpatterns = [
         'projects/<int:project_id>/live-data/',
         ProjectLiveDataAPIView.as_view(),
         name='project-live-data'
+    ),
+    path(
+        'admin/statistics/',
+        AdminStatisticsView.as_view(),
+        name='admin-statistics'
     ),
     # path("panels/<int:board_id>/power/", PanelPowerView.as_view(), name="panel-power"),
 ] + router.urls

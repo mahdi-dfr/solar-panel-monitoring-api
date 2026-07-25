@@ -1,23 +1,44 @@
-from django.shortcuts import render
+from django.contrib.auth import get_user_model
+
 from rest_framework.viewsets import ModelViewSet
-from . models import User
-from . serializer import UserSerializer
-from rest_framework.permissions import IsAdminUser
-from ACU.custom_permissions import IsOwner
+
+from .serializer import (
+    AdminUserSerializer,
+    SelfUserSerializer,
+)
+
+from .permissions import UserPermission
+
+
+User = get_user_model()
 
 
 class UserViewSet(ModelViewSet):
 
-    serializer_class = UserSerializer
-
-    permission_classes = [IsAdminUser]
+    permission_classes = [
+        UserPermission
+    ]
 
     def get_queryset(self):
 
-        if self.request.user.is_staff:
+        user = self.request.user
+
+        # ادمین
+        if user.is_staff:
+
             return User.objects.all()
 
+        # کاربر عادی فقط خودش
         return User.objects.filter(
-            id=self.request.user.id
+            id=user.id
         )
-    
+
+    def get_serializer_class(self):
+
+        # ادمین
+        if self.request.user.is_staff:
+
+            return AdminUserSerializer
+
+        # کاربر عادی
+        return SelfUserSerializer

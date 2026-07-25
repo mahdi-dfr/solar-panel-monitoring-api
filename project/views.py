@@ -4,6 +4,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework import status
 from urllib.parse import quote
+from django.contrib.auth import get_user_model
 
 
 from rest_framework.views import APIView
@@ -12,11 +13,12 @@ from django.utils import timezone
 from django.shortcuts import get_object_or_404
 
 from .serializer import (
-    ProjectSerializer, LiveBoardSerializer)
+    ProjectSerializer, LiveBoardSerializer, StringSerializer, BoardSerializer, AdminStatisticsSerializer)
 
 from .models import (
     Project,
     Board,
+    String,
     BoardReading,
     StringReading
 )
@@ -28,15 +30,15 @@ import requests
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.exceptions import ValidationError
 from .models import Project, StringReading
+
 from utilities.utility import get_or_fetch_lat_long
-from ACU.custom_permissions import IsOwner
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from django.db.models import Prefetch
 
-
+User = get_user_model()
 
 class ProjectViewSet(ModelViewSet):
-    permission_classes = [IsAuthenticated, IsOwner]
+    permission_classes = [IsAdminUser]
     serializer_class = ProjectSerializer
 
     def get_queryset(self):
@@ -65,6 +67,87 @@ class ProjectViewSet(ModelViewSet):
         )
 
 
+class BoardViewSet(ModelViewSet):
+
+    serializer_class = BoardSerializer
+
+    permission_classes = [IsAdminUser]
+
+    def get_queryset(self):
+
+        user = self.request.user
+
+        queryset = Board.objects.select_related(
+            'project',
+            'project__user'
+        ).prefetch_related(
+            'strings'
+        )
+
+        if user.is_staff:
+
+            return queryset
+
+        return queryset.filter(
+            project__user=user
+        )
+
+    def perform_create(self, serializer):
+
+        project = serializer.validated_data['project']
+
+        if not self.request.user.is_staff:
+
+            if project.user != self.request.user:
+
+                from rest_framework.exceptions import PermissionDenied
+
+                raise PermissionDenied(
+                    'شما اجازه ساخت برد برای این پروژه را ندارید.'
+                )
+
+        serializer.save()
+
+
+class StringViewSet(ModelViewSet):
+
+    serializer_class = StringSerializer
+
+    permission_classes = [IsAdminUser]
+
+    def get_queryset(self):
+
+        user = self.request.user
+
+        queryset = String.objects.select_related(
+            'board',
+            'board__project',
+            'board__project__user'
+        )
+
+        if user.is_staff:
+
+            return queryset
+
+        return queryset.filter(
+            board__project__user=user
+        )
+
+    def perform_create(self, serializer):
+
+        board = serializer.validated_data['board']
+
+        if not self.request.user.is_staff:
+
+            if board.project.user != self.request.user:
+
+                from rest_framework.exceptions import PermissionDenied
+
+                raise PermissionDenied(
+                    'شما اجازه ساخت استرینگ برای این برد را ندارید.'
+                )
+
+        serializer.save()
 
 
 class ProjectLiveDataAPIView(APIView):
@@ -131,7 +214,6 @@ class ProjectLiveDataAPIView(APIView):
             "project_name": project.project_name,
             "boards": serializer.data
         })
-
 
 
 class ProjectWeatherView(APIView):
@@ -261,3 +343,31 @@ class ConvertCityToLatlongView(APIView):
                 {"error": "Unexpected error", "detail": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        
+
+class AdminStatisticsView(APIView):
+
+    permission_classes = [
+        IsAdminUser
+    ]
+
+    def get(self, request):
+
+        statistics = {
+
+            'total_users': User.objects.count(),
+
+            'total_projects': Project.objects.count(),
+
+            'total_boards': Board.objects.count(),
+
+            'total_strings': String.objects.count(),
+        }
+
+        serializer = AdminStatisticsSerializer(
+            statistics
+        )
+
+        return Response(
+            serializer.data
+        )
