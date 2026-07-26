@@ -5,6 +5,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from urllib.parse import quote
 from django.contrib.auth import get_user_model
+from datetime import timedelta
+
+from django.db.models import Avg
+from django.db.models.functions import TruncDate
+from django.utils import timezone
 
 
 from rest_framework.views import APIView
@@ -371,3 +376,102 @@ class AdminStatisticsView(APIView):
         return Response(
             serializer.data
         )
+
+
+class ProjectDashboardChartView(APIView):
+
+    def get(self, request, project_id):
+
+        period = request.query_params.get(
+            'period',
+            'week'
+        )
+
+        if period not in ['week', 'month']:
+            return Response(
+                {
+                    'detail': 'period must be week or month'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        project = Project.objects.filter(
+            id=project_id
+        ).first()
+
+        if project is None:
+            return Response(
+                {
+                    'detail': 'پروژه پیدا نشد'
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if (
+            not request.user.is_staff
+            and project.user_id != request.user.id
+        ):
+            return Response(
+                {
+                    'detail': 'شما به این پروژه دسترسی ندارید'
+                },
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        now = timezone.now()
+
+        if period == 'week':
+            start_date = now - timedelta(days=7)
+        else:
+            start_date = now - timedelta(days=30)
+
+        readings = StringReading.objects.filter(
+            string__board__project=project,
+            board_reading__timestamp__gte=start_date
+        )
+
+        chart_data = (
+            readings
+            .annotate(
+                date=TruncDate(
+                    'board_reading__timestamp'
+                )
+            )
+            .values('date')
+            .annotate(
+                average_power=Avg('power'),
+                average_energy=Avg('energy'),
+                average_voltage=Avg('voltage'),
+            )
+            .order_by('date')
+        )
+
+        data = []
+
+        for item in chart_data:
+
+            data.append(
+                {
+                    'date': item['date'],
+                    'average_power': round(
+                        item['average_power'] or 0,
+                        2
+                    ),
+                    'average_energy': round(
+                        item['average_energy'] or 0,
+                        2
+                    ),
+                    'average_voltage': round(
+                        item['average_voltage'] or 0,
+                        2
+                    ),
+                }
+            )
+
+        return Response(
+            {
+                'period': period,
+                'data': data
+            },
+            status=status.HTTP_200_OK
+        )    

@@ -8,6 +8,7 @@ from .views import (
     ProjectLiveDataAPIView,
     AdminStatisticsView,
     StringViewSet,
+    ProjectDashboardChartView,
     BoardViewSet
 
 )
@@ -32,5 +33,11 @@ urlpatterns = [
         AdminStatisticsView.as_view(),
         name='admin-statistics'
     ),
+     path(
+        'projects/<int:project_id>/dashboard-chart/',
+        ProjectDashboardChartView.as_view(),
+        name='project-dashboard-chart'
+    ),
+
     # path("panels/<int:board_id>/power/", PanelPowerView.as_view(), name="panel-power"),
 ] + router.urls

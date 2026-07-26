@@ -6,16 +6,17 @@ from utils.validators import *
 
 class User(AbstractUser):
 
-    first_name = models.CharField(max_length=100)
+    first_name = models.CharField(max_length=100, verbose_name='نام')
 
-    last_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100 ,verbose_name='نام خانوادگی')
 
-    address = models.CharField(max_length=255, null=True, blank=True)
+    address = models.CharField(max_length=255, null=True, blank=True, verbose_name='آدرس')
 
     mobile_number = models.CharField(
         max_length=11,
         validators=[mobile_validator],
-        unique=True
+        unique=True,
+        verbose_name='شماره موبایل'
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
